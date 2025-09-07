@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Boulder Dash Assets Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        canvas {
+            border: 2px solid #333;
+            image-rendering: pixelated;
+            background: #fff;
+        }
+        .preview {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .large-preview {
+            width: 128px;
+            height: 128px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Boulder Dash Assets Generator</h1>
+        <p>Generate realistic rocky boulders, sparkling diamonds, and sound effects for your Boulder Dash game!</p>
+        
+        <!-- Sound Effects Section -->
+        <div class="preview">
+            <h2>🔊 Sound Effects Generator</h2>
+            <div class="controls">
+                <button onclick="generatePlayerMoveSound()">🚶 Player Move Sound</button>
+                <button onclick="generatePushBoulderSound()">🪨 Push Boulder Sound</button>
+                <button onclick="generateBoulderFallSound()">🪨⬇️ Boulder Fall Sound</button>
+                <button onclick="generateDiamondFallSound()">💎⬇️ Diamond Fall Sound</button>
+                <button onclick="generateExitOpenSound()">🚪✨ Exit Open Sound</button>
+                <button onclick="generateExitReachedSound()">🏆 Exit Reached Sound</button>
+            </div>
+            <audio id="audioPlayer" controls style="margin: 10px 0;"></audio>
+            <div id="soundStatus" style="margin: 10px 0; font-weight: bold;"></div>
+        </div>
+        
+        <!-- Visual Assets Section -->
+        <h2>🎨 Visual Assets Generator</h2>
+        
+        <div class="preview">
+            <h3>128x128 Boulder (High Resolution)</h3>
+            <canvas id="canvas" width="128" height="128" class="large-preview"></canvas>
+        </div>
+        
+        <div class="preview">
+            <h3>128x128 Diamond (High Resolution)</h3>
+            <canvas id="diamondCanvas" width="128" height="128" class="large-preview"></canvas>
+        </div>
+        
+        <div class="controls">
+            <button onclick="generateAndDownloadBoulder()">Generate & Download boulder.png</button>
+            <button onclick="generateAndDownloadDiamond()">Generate & Download diamond.png</button>
+            <button onclick="generateMultipleBoulders()">Generate 5 Boulder Options</button>
+            <button onclick="generateMultipleDiamonds()">Generate 5 Diamond Options</button>
+        </div>
+        
+        <div id="boulderOptions" class="preview">
+            <h3>Boulder Options (click to download):</h3>
+        </div>
+        
+        <div id="diamondOptions" class="preview">
+            <h3>Diamond Options (click to download):</h3>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const diamondCanvas = document.getElementById('diamondCanvas');
+        const diamondCtx = diamondCanvas.getContext('2d');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const soundStatus = document.getElementById('soundStatus');
+        
+        // Sound generation functions using Web Audio API
+        function createAudioContext() {
+            return new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        function generatePlayerMoveSound() {
+            const audioContext = createAudioContext();
+            const duration = 0.1; // Much shorter
+            const sampleRate = audioContext.sampleRate;
+            const samples = duration * sampleRate;
+            const buffer = audioContext.createBuffer(1, samples, sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            // Generate a very soft, subtle step sound
+            for (let i = 0; i < samples; i++) {
+                const t = i / sampleRate;
+                const envelope = Math.exp(-t * 50); // Very quick decay
+                const softTick = Math.sin(2 * Math.PI * 300 * t) * 0.3; // Soft tick
+                const noise = (Math.random() * 2 - 1) * 0.05; // Very low volume noise
+                data[i] = (softTick + noise) * envelope * 0.08; // Very quiet
+            }
+            
+            playGeneratedSound(buffer, audioContext, "Player Move Sound Generated!");
+        }
+        
+        function generatePushBoulderSound() {
+            const audioContext = createAudioContext();
+            const duration = 0.8; // Longer for dragging effect
+            const sampleRate = audioContext.sampleRate;
+            const samples = duration * sampleRate;
+            const buffer = audioContext.createBuffer(1, samples, sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            // Generate a dragging/scraping sound - continuous friction
+            for (let i = 0; i < samples; i++) {
+                const t = i / sampleRate;
+                const envelope = Math.max(0.3, 1 - t * 1.2); // Gradual fade but maintains volume
+                const friction1 = Math.sin(2 * Math.PI * 45 * t) * Math.sin(2 * Math.PI * 67 * t); // Low grinding
+                const friction2 = Math.sin(2 * Math.PI * 89 * t) * Math.sin(2 * Math.PI * 123 * t); // Mid grinding
+                const scrape = (Math.random() * 2 - 1) * 0.4 * Math.sin(t * 15); // Modulated scraping
+                data[i] = (friction1 * 0.4 + friction2 * 0.3 + scrape * 0.3) * envelope * 0.25;
+            }
+            
+            playGeneratedSound(buffer, audioContext, "Push Boulder Sound Generated!");
+        }
+        
+        function generateDigDirtSound() {
+            const audioContext = createAudioContext();
+            const duration = 0.15;
+            const sampleRate = audioContext.sampleRate;
+            const samples = duration * sampleRate;
+            const buffer = audioContext.createBuffer(1, samples, sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            // Generate a short crisp digging sound - mid-frequency burst
+            for (let i = 0; i < samples; i++) {
+                const t = i / sampleRate;
+                const envelope = Math.exp(-t * 30); // Very quick decay
+                const dig = Math.sin(2 * Math.PI * 200 * t) * Math.sin(2 * Math.PI * 180 * t);
+                const noise = (Math.random() * 2 - 1) * 0.2;
+                data[i] = (dig * 0.7 + noise * 0.3) * envelope * 0.4;
+            }
+            
+            playGeneratedSound(buffer, audioContext, "Dig Dirt Sound Generated!");
+        }
+        
+        function generateBoulderFallSound() {
+            const audioContext = createAudioContext();
+            const duration = 0.4; // Shorter but punchier
+            const sampleRate = audioContext.sampleRate;
+            const samples = duration * sampleRate;
+            const buffer = audioContext.createBuffer(1, samples, sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            // Generate a powerful thump - very low frequency with strong impact
+            for (let i = 0; i < samples; i++) {
+                const t = i / sampleRate;
+                const envelope = Math.exp(-t * 12); // Quick but strong decay
+                const deepThump = Math.sin(2 * Math.PI * 35 * t); // Very low fundamental
+                const impact = Math.sin(2 * Math.PI * 70 * t) * Math.exp(-t * 25); // Sharp attack
+                const punch = Math.sin(2 * Math.PI * 140 * t) * Math.exp(-t * 40); // Initial punch
+                data[i] = (deepThump * 0.7 + impact * 0.2 + punch * 0.1) * envelope * 0.8; // Much stronger
+            }
+            
+            playGeneratedSound(buffer, audioContext, "Boulder Fall Sound Generated!");
+        }
+        
+        function generateDiamondFallSound() {
+            const audioContext = createAudioContext();
+            const duration = 0.15; // Much shorter
+            const sampleRate = audioContext.sampleRate;
+            const samples = duration * sampleRate;
+            const buffer = audioContext.createBuffer(1, samples, sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            // Generate a thin, delicate chime - higher frequency, shorter
+            for (let i = 0; i < samples; i++) {
+                const t = i / sampleRate;
+                const envelope = Math.exp(-t * 25); // Very quick decay
+                const thinChime = Math.sin(2 * Math.PI * 1200 * t); // Higher, thinner
+                const shimmer = Math.sin(2 * Math.PI * 2400 * t) * 0.3; // Delicate shimmer
+                data[i] = (thinChime + shimmer) * envelope * 0.15; // Quieter and thinner
+            }
+            
+            playGeneratedSound(buffer, audioContext, "Diamond Fall Sound Generated!");
+        }
+        
+        function generateExitOpenSound() {
+            const audioContext = createAudioContext();
+            const duration = 1.2;
+            const sampleRate = audioContext.sampleRate;
+            const samples = duration * sampleRate;
+            const buffer = audioContext.createBuffer(1, samples, sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            // Generate a magical door opening sound - ascending chimes
+            for (let i = 0; i < samples; i++) {
+                const t = i / sampleRate;
+                const envelope = Math.exp(-t * 2); // Slow decay
+                const freq = 400 + t * 600; // Ascending frequency
+                const magic1 = Math.sin(2 * Math.PI * freq * t);
+                const magic2 = Math.sin(2 * Math.PI * freq * 1.5 * t) * 0.5;
+                const sparkle = Math.sin(2 * Math.PI * freq * 3 * t) * 0.2 * Math.sin(t * 10);
+                data[i] = (magic1 + magic2 + sparkle) * envelope * 0.3;
+            }
+            
+            playGeneratedSound(buffer, audioContext, "Exit Open Sound Generated!");
+        }
+        
+        function generateExitReachedSound() {
+            const audioContext = createAudioContext();
+            const duration = 1.5;
+            const sampleRate = audioContext.sampleRate;
+            const samples = duration * sampleRate;
+            const buffer = audioContext.createBuffer(1, samples, sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            // Generate a victory fanfare - triumph chord progression
+            for (let i = 0; i < samples; i++) {
+                const t = i / sampleRate;
+                const envelope = Math.exp(-t * 1.5); // Very slow decay
+                
+                // Major chord progression
+                const note1 = Math.sin(2 * Math.PI * 523 * t); // C5
+                const note2 = Math.sin(2 * Math.PI * 659 * t); // E5
+                const note3 = Math.sin(2 * Math.PI * 784 * t); // G5
+                const note4 = Math.sin(2 * Math.PI * 1047 * t); // C6
+                
+                // Add some flourish
+                const flourish = Math.sin(2 * Math.PI * 1568 * t) * Math.sin(t * 8) * 0.3;
+                
+                data[i] = (note1 * 0.3 + note2 * 0.25 + note3 * 0.25 + note4 * 0.2 + flourish) * envelope * 0.4;
+            }
+            
+            playGeneratedSound(buffer, audioContext, "Exit Reached Sound Generated!");
+        }
+        
+        function playGeneratedSound(buffer, audioContext, statusMessage) {
+            // Create a download link for the sound
+            const length = buffer.length;
+            const arrayBuffer = new ArrayBuffer(44 + length * 2);
+            const view = new DataView(arrayBuffer);
+            
+            // WAV header
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+            
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + length * 2, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, audioContext.sampleRate, true);
+            view.setUint32(28, audioContext.sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(36, 'data');
+            view.setUint32(40, length * 2, true);
+            
+            // Convert audio data
+            const data = buffer.getChannelData(0);
+            let offset = 44;
+            for (let i = 0; i < length; i++) {
+                const sample = Math.max(-1, Math.min(1, data[i]));
+                view.setInt16(offset, sample * 0x7FFF, true);
+                offset += 2;
+            }
+            
+            // Create blob and play
+            const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
+            audioPlayer.src = url;
+            audioPlayer.play();
+            
+            soundStatus.innerHTML = `${statusMessage} <a href="${url}" download="${statusMessage.split(' ')[0].toLowerCase()}.wav">Download WAV</a>`;
+        }
+        
+        function generateAndDownloadBoulder() {
+            // Clear canvas
+            ctx.clearRect(0, 0, 128, 128);
+            
+            // Generate rocky boulder
+            drawRockyBoulder(ctx, 128);
+            
+            // Automatically download
+            downloadImage(canvas, 'boulder.png');
+        }
+        
+        function generateAndDownloadDiamond() {
+            // Clear canvas
+            diamondCtx.clearRect(0, 0, 128, 128);
+            
+            // Generate sparkling diamond
+            drawSparklingDiamond(diamondCtx, 128);
+            
+            // Automatically download
+            downloadImage(diamondCanvas, 'diamond.png');
+        }
+        
+        function generateMultipleBoulders() {
+            const optionsDiv = document.getElementById('boulderOptions');
+            optionsDiv.innerHTML = '<h3>Boulder Options (click to download):</h3>';
+            
+            for (let i = 0; i < 5; i++) {
+                const optionCanvas = document.createElement('canvas');
+                optionCanvas.width = 128;
+                optionCanvas.height = 128;
+                optionCanvas.style.width = '96px';
+                optionCanvas.style.height = '96px';
+                optionCanvas.style.border = '1px solid #ccc';
+                optionCanvas.style.margin = '5px';
+                optionCanvas.style.cursor = 'pointer';
+                optionCanvas.style.imageRendering = 'pixelated';
+                
+                const optionCtx = optionCanvas.getContext('2d');
+                drawRockyBoulder(optionCtx, 128);
+                
+                // Add click handler to download this option
+                optionCanvas.onclick = function() {
+                    downloadImage(optionCanvas, 'boulder.png');
+                };
+                
+                optionsDiv.appendChild(optionCanvas);
+            }
+        }
+        
+        function generateMultipleDiamonds() {
+            const optionsDiv = document.getElementById('diamondOptions');
+            optionsDiv.innerHTML = '<h3>Diamond Options (click to download):</h3>';
+            
+            for (let i = 0; i < 5; i++) {
+                const optionCanvas = document.createElement('canvas');
+                optionCanvas.width = 128;
+                optionCanvas.height = 128;
+                optionCanvas.style.width = '96px';
+                optionCanvas.style.height = '96px';
+                optionCanvas.style.border = '1px solid #ccc';
+                optionCanvas.style.margin = '5px';
+                optionCanvas.style.cursor = 'pointer';
+                optionCanvas.style.imageRendering = 'pixelated';
+                
+                const optionCtx = optionCanvas.getContext('2d');
+                drawSparklingDiamond(optionCtx, 128);
+                
+                // Add click handler to download this option
+                optionCanvas.onclick = function() {
+                    downloadImage(optionCanvas, 'diamond.png');
+                };
+                
+                optionsDiv.appendChild(optionCanvas);
+            }
+        }
+        
+        function drawRockyBoulder(context, size) {
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const radius = size * 0.4;
+            
+            // Create irregular rock shape with multiple vertices
+            const vertices = [];
+            const numVertices = 12;
+            
+            for (let i = 0; i < numVertices; i++) {
+                const angle = (i / numVertices) * Math.PI * 2;
+                const radiusVariation = radius + (Math.random() - 0.5) * radius * 0.4;
+                const x = centerX + Math.cos(angle) * radiusVariation;
+                const y = centerY + Math.sin(angle) * radiusVariation;
+                vertices.push({x, y});
+            }
+            
+            // Base boulder color - medium gray
+            context.fillStyle = '#707070';
+            context.beginPath();
+            context.moveTo(vertices[0].x, vertices[0].y);
+            for (let i = 1; i < vertices.length; i++) {
+                context.lineTo(vertices[i].x, vertices[i].y);
+            }
+            context.closePath();
+            context.fill();
+            
+            // Add darker shadows on bottom and right
+            context.fillStyle = '#505050';
+            context.beginPath();
+            context.moveTo(centerX, centerY);
+            for (let i = 0; i < vertices.length; i++) {
+                const angle = (i / vertices.length) * Math.PI * 2;
+                if (angle > Math.PI * 0.3 && angle < Math.PI * 1.7) {
+                    context.lineTo(vertices[i].x, vertices[i].y);
+                }
+            }
+            context.closePath();
+            context.fill();
+            
+            // Add even darker deep shadows
+            context.fillStyle = '#404040';
+            context.beginPath();
+            context.moveTo(centerX + 2, centerY + 2);
+            for (let i = 0; i < vertices.length; i++) {
+                const angle = (i / vertices.length) * Math.PI * 2;
+                if (angle > Math.PI * 0.7 && angle < Math.PI * 1.3) {
+                    context.lineTo(vertices[i].x, vertices[i].y);
+                }
+            }
+            context.closePath();
+            context.fill();
+            
+            // Add highlights on top and left
+            context.fillStyle = '#909090';
+            context.beginPath();
+            context.moveTo(centerX, centerY);
+            for (let i = 0; i < vertices.length; i++) {
+                const angle = (i / vertices.length) * Math.PI * 2;
+                if (angle > Math.PI * 1.3 || angle < Math.PI * 0.7) {
+                    context.lineTo(vertices[i].x, vertices[i].y);
+                }
+            }
+            context.closePath();
+            context.fill();
+            
+            // Add bright highlights
+            context.fillStyle = '#A0A0A0';
+            context.beginPath();
+            context.moveTo(centerX - 2, centerY - 2);
+            for (let i = 0; i < vertices.length; i++) {
+                const angle = (i / vertices.length) * Math.PI * 2;
+                if (angle > Math.PI * 1.5 || angle < Math.PI * 0.5) {
+                    context.lineTo(vertices[i].x * 0.8 + centerX * 0.2, vertices[i].y * 0.8 + centerY * 0.2);
+                }
+            }
+            context.closePath();
+            context.fill();
+            
+            // Add rock texture with cracks and spots - more detail for 128x128
+            for (let i = 0; i < size * 2; i++) {
+                const x = Math.floor(Math.random() * size);
+                const y = Math.floor(Math.random() * size);
+                
+                // Check if point is inside boulder
+                const dx = x - centerX;
+                const dy = y - centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < radius * 1.2) {
+                    const grayValue = Math.floor(Math.random() * 40) + 60; // 60-100 range
+                    context.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+                    context.fillRect(x, y, 1, 1);
+                }
+            }
+            
+            // Add some darker crack lines - scaled for higher resolution
+            context.strokeStyle = '#383838';
+            context.lineWidth = Math.max(1, size / 32);
+            
+            // Vertical crack
+            context.beginPath();
+            context.moveTo(centerX - size/10, centerY - size/5);
+            context.lineTo(centerX - size/16, centerY + size/8);
+            context.stroke();
+            
+            // Diagonal crack
+            context.beginPath();
+            context.moveTo(centerX + size/16, centerY - size/8);
+            context.lineTo(centerX + size/5, centerY + size/16);
+            context.stroke();
+            
+            // Horizontal crack
+            context.beginPath();
+            context.moveTo(centerX - size/6, centerY + size/10);
+            context.lineTo(centerX + size/32, centerY + size/8);
+            context.stroke();
+            
+            // Add more detailed cracks for higher resolution
+            if (size >= 64) {
+                // Additional fine cracks
+                context.lineWidth = 1;
+                context.strokeStyle = '#484848';
+                
+                for (let i = 0; i < 3; i++) {
+                    const startX = centerX + (Math.random() - 0.5) * radius;
+                    const startY = centerY + (Math.random() - 0.5) * radius;
+                    const endX = startX + (Math.random() - 0.5) * size/4;
+                    const endY = startY + (Math.random() - 0.5) * size/4;
+                    
+                    context.beginPath();
+                    context.moveTo(startX, startY);
+                    context.lineTo(endX, endY);
+                    context.stroke();
+                }
+            }
+        }
+        
+        function drawSparklingDiamond(context, size) {
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const diamondSize = size * 0.4;
+            
+            // Create diamond shape (octagon-like)
+            const vertices = [
+                {x: centerX, y: centerY - diamondSize},           // top
+                {x: centerX + diamondSize * 0.6, y: centerY - diamondSize * 0.6}, // top right
+                {x: centerX + diamondSize, y: centerY},           // right
+                {x: centerX + diamondSize * 0.6, y: centerY + diamondSize * 0.6}, // bottom right
+                {x: centerX, y: centerY + diamondSize},           // bottom
+                {x: centerX - diamondSize * 0.6, y: centerY + diamondSize * 0.6}, // bottom left
+                {x: centerX - diamondSize, y: centerY},           // left
+                {x: centerX - diamondSize * 0.6, y: centerY - diamondSize * 0.6}  // top left
+            ];
+            
+            // Base diamond color - bright cyan/blue
+            context.fillStyle = '#00CCFF';
+            context.beginPath();
+            context.moveTo(vertices[0].x, vertices[0].y);
+            for (let i = 1; i < vertices.length; i++) {
+                context.lineTo(vertices[i].x, vertices[i].y);
+            }
+            context.closePath();
+            context.fill();
+            
+            // Add darker blue shadows on bottom facets
+            context.fillStyle = '#0088CC';
+            context.beginPath();
+            context.moveTo(centerX, centerY);
+            context.lineTo(vertices[3].x, vertices[3].y);
+            context.lineTo(vertices[4].x, vertices[4].y);
+            context.lineTo(vertices[5].x, vertices[5].y);
+            context.closePath();
+            context.fill();
+            
+            // Add even darker shadows for depth
+            context.fillStyle = '#0066AA';
+            context.beginPath();
+            context.moveTo(centerX, centerY);
+            context.lineTo(vertices[4].x, vertices[4].y);
+            context.lineTo(vertices[5].x, vertices[5].y);
+            context.lineTo(vertices[6].x, vertices[6].y);
+            context.closePath();
+            context.fill();
+            
+            // Add bright highlights on top facets
+            context.fillStyle = '#66DDFF';
+            context.beginPath();
+            context.moveTo(centerX, centerY);
+            context.lineTo(vertices[0].x, vertices[0].y);
+            context.lineTo(vertices[1].x, vertices[1].y);
+            context.lineTo(vertices[2].x, vertices[2].y);
+            context.closePath();
+            context.fill();
+            
+            // Add very bright white highlights
+            context.fillStyle = '#FFFFFF';
+            context.beginPath();
+            context.moveTo(centerX, centerY);
+            context.lineTo(vertices[7].x, vertices[7].y);
+            context.lineTo(vertices[0].x, vertices[0].y);
+            context.lineTo(vertices[1].x, vertices[1].y);
+            context.closePath();
+            context.fill();
+            
+            // Add internal facet lines
+            context.strokeStyle = '#004488';
+            context.lineWidth = Math.max(1, size / 64);
+            
+            // Draw facet lines from center to each vertex
+            for (let i = 0; i < vertices.length; i++) {
+                context.beginPath();
+                context.moveTo(centerX, centerY);
+                context.lineTo(vertices[i].x, vertices[i].y);
+                context.stroke();
+            }
+            
+            // Add sparkle effects
+            context.fillStyle = '#FFFFFF';
+            const sparkleSize = Math.max(1, size / 32);
+            
+            // Main sparkles
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const distance = diamondSize * (0.3 + Math.random() * 0.4);
+                const sparkleX = centerX + Math.cos(angle) * distance;
+                const sparkleY = centerY + Math.sin(angle) * distance;
+                
+                // Cross-shaped sparkle
+                context.fillRect(sparkleX - sparkleSize, sparkleY - sparkleSize/3, sparkleSize * 2, sparkleSize * 2/3);
+                context.fillRect(sparkleX - sparkleSize/3, sparkleY - sparkleSize, sparkleSize * 2/3, sparkleSize * 2);
+            }
+            
+            // Additional small sparkles
+            for (let i = 0; i < 12; i++) {
+                const sparkleX = centerX + (Math.random() - 0.5) * diamondSize * 1.5;
+                const sparkleY = centerY + (Math.random() - 0.5) * diamondSize * 1.5;
+                
+                // Check if sparkle is inside diamond (roughly)
+                const dx = sparkleX - centerX;
+                const dy = sparkleY - centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < diamondSize * 0.8) {
+                    context.fillRect(sparkleX, sparkleY, sparkleSize/2, sparkleSize/2);
+                }
+            }
+            
+            // Add outer glow effect
+            if (size >= 64) {
+                const gradient = context.createRadialGradient(centerX, centerY, diamondSize * 0.8, centerX, centerY, diamondSize * 1.3);
+                gradient.addColorStop(0, 'rgba(0, 204, 255, 0.3)');
+                gradient.addColorStop(1, 'rgba(0, 204, 255, 0)');
+                
+                context.fillStyle = gradient;
+                context.beginPath();
+                context.arc(centerX, centerY, diamondSize * 1.3, 0, Math.PI * 2);
+                context.fill();
+            }
+        }
+        
+        function downloadImage(canvas, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Generate initial images on page load
+        window.onload = function() {
+            drawRockyBoulder(ctx, 128);
+            drawSparklingDiamond(diamondCtx, 128);
+        };
+    </script>
+    </script>
+</body>
+</html>
