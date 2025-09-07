@@ -54,7 +54,7 @@ export function GridRenderer( { grid, gameState, cellSize = 32, gameEngine }: Gr
 				const img = new Image();
 				img.onload = () => resolve([type, img]);
 				img.onerror = () => reject(new Error(`Failed to load ${type}.png`));
-				img.src = `/${type}.png`; // Load from public folder
+				img.src = `${import.meta.env.BASE_URL}${type}.png`; // Use Vite's base URL
 			});
 		});
 
